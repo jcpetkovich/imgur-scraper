@@ -5,11 +5,15 @@
 # Version: 0.01
 
 use v5.12;
+use strict;
+use warnings;
 use URI;
 use LWP::Simple;
+use WWW::Mechanize;
 use Getopt::Long qw( :config auto_help );
 use HTML::TreeBuilder;
 use File::Spec::Functions qw( canonpath catfile );
+use Data::Dumper;
 
 GetOptions();
 my ( $imgur_album, $directory ) = @ARGV;
@@ -27,11 +31,14 @@ sub joinpath { canonpath( catfile(@_) ) }
     }
 }
 
-my $content = get($imgur_album);
+my $mech = WWW::Mechanize->new;
+$mech->get($imgur_album);
+my $content = $mech->content;
 my $html    = HTML::TreeBuilder->new();
 $html->parse($content);
 
 my @images = $html->find_by_tag_name("img");
+# print Dumper(\@images);
 
 mkdir $directory unless -d $directory;
 
@@ -40,13 +47,15 @@ for my $image (@images) {
     my $class = $image->attr("class");
 
     # class attr of desired images seems to be "unloaded"
-    if ( $class and $class =~ /^unloaded$/ ) {
+    if ( $class and $class =~ /^unloaded/ ) {
 
         my $path = joinpath( $directory, $image->img_name() );
+        my $image_name = $image->attr("data-src");
+        $image_name =~ s/s\.jpg/\.jpg/g;
 
-        say "Downloading: ", $image->attr("data-src"), " to: $path";
+        say "Downloading: ", $image_name, " to: $path";
 
-        getstore( $image->attr("data-src"), $path );
+        getstore( $image_name, $path );
     }
 }
 
