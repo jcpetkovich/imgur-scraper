@@ -38,6 +38,7 @@ my $html    = HTML::TreeBuilder->new();
 $html->parse($content);
 
 my @images = $html->find_by_tag_name("img");
+
 # print Dumper(\@images);
 
 mkdir $directory unless -d $directory;
@@ -49,13 +50,24 @@ for my $image (@images) {
     # class attr of desired images seems to be "unloaded"
     if ( $class and $class =~ /^unloaded/ ) {
 
-        my $path = joinpath( $directory, $image->img_name() );
-        my $image_name = $image->attr("data-src");
-        $image_name =~ s/s\.jpg/\.jpg/g;
+        # Get the imgur image id to use as a unique name
+        my $image_name = $image->img_name();
+        my ($image_id) = $image_name =~ /(.*)\..[^.]*$/;
 
-        say "Downloading: ", $image_name, " to: $path";
+        # Get the url of the image from the <img> tag
+        my $image_url = $image->attr("data-src");
+        $image_url =~ s/s\.jpg/.jpg/g;
 
-        getstore( $image_name, $path );
+        # Check the content type before downloading
+        my ($content_type) = head $image_url;
+        my ($path_extension) = $content_type =~ /image\/(.*)/;
+
+        # Name the file based on the content type instead of trusting imgur
+        my $path = joinpath( $directory, $image_id . '.' . $path_extension );
+
+        say "Downloading: ", $image_url, " to: $path";
+
+        getstore( $image_url, $path );
     }
 }
 
