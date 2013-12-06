@@ -57,6 +57,7 @@ for my $image (@images) {
         # Get the url of the image from the <img> tag
         my $image_url = $image->attr("data-src");
         $image_url =~ s/s\.jpg/.jpg/g;
+        $image_url = "http:$image_url" unless $image_url =~ m!^http:!i;
 
         # Check the content type before downloading
         my ($content_type) = head $image_url;
